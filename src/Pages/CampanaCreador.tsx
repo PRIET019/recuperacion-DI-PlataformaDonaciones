@@ -48,10 +48,13 @@ export default function CampanaCreador() {
 <Box  
 sx={{
         width: '100vw',
-        bgcolor: 'background.default',
+        bgcolor: '#f8f9faee',
       }}>
     <Container sx={{ py: 4 }}>
-      <Typography variant="h4">Panel de campaña</Typography>
+      <Typography variant="h4" sx={{ color: 'black' }}>
+        Panel de campaña
+      </Typography>
+
 
       <Grid container spacing={2} sx={{ my: 3 }}>
         <Grid item xs={12} md={4}>

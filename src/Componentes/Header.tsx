@@ -9,13 +9,14 @@ import {
 import VolunteerActivismIcon from "@mui/icons-material/VolunteerActivism"
 import { useNavigate } from "react-router-dom"
 
+
 export default function Header() {
   const navigate = useNavigate()
   const token = localStorage.getItem("token")
 
   const handleLogout = () => {
     localStorage.removeItem("token")
-    navigate("/login")
+    navigate("/")
   }
 
   return (
