@@ -69,21 +69,6 @@ const formatearFecha = (fecha?: string | null) => {
   }).format(d)
 }
 
-const isAdmin = () => {
-  const token = localStorage.getItem("token")
-  if (!token) return false
-
-  const rolLS = localStorage.getItem("rol")
-  if (rolLS && rolLS.toUpperCase() === "ADMIN") return true
-
-  try {
-    const decoded: DecodedToken = jwtDecode(token)
-    return (decoded.rol ?? "").toUpperCase() === "ADMIN"
-  } catch {
-    return false
-  }
-}
-
 export default function Home() {
   const navigate = useNavigate()
 
@@ -116,26 +101,8 @@ export default function Home() {
         pb: 4
       }}
     >
+
       <Container maxWidth={false} sx={{ py: 4 }}>
-
-        {isAdmin() && (
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2, mr: 15 }}>
-            <Button
-              variant="contained"
-              onClick={() => navigate("/panel")}
-              sx={{
-                backgroundColor: "#16a34a",
-                fontWeight: "bold",
-                borderRadius: 2,
-                px: 3,
-                "&:hover": { backgroundColor: "#15803d" },
-              }}
-            >
-              Ir al panel
-            </Button>
-          </Box>
-        )}
-
         {loading && <LoadingState />}
 
         {!loading && errorMsg && <ErrorState message={errorMsg} />}
@@ -194,6 +161,7 @@ export default function Home() {
                         Recaudado: €{campaña.recaudado}
                       </Typography>
 
+                      
                       <Typography variant="body2" sx={{ mt: 1, color: 'black' }}>
                         <b>Fecha fin:</b> {formatearFecha(campaña.fechaFinalizacion)}
                       </Typography>
@@ -228,6 +196,7 @@ export default function Home() {
           </Grid>
         )}
       </Container>
+
     </Box>
   )
 }
