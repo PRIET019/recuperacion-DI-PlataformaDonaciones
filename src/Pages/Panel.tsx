@@ -95,7 +95,6 @@ export default function Panel() {
 
   useEffect(() => {
     cargarDatos()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (loading) return <LoadingState />

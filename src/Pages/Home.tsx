@@ -69,16 +69,13 @@ const formatearFecha = (fecha?: string | null) => {
   }).format(d)
 }
 
-// ✅ SOLO ADMIN: helper para decidir si mostrar botón de panel
 const isAdmin = () => {
   const token = localStorage.getItem("token")
   if (!token) return false
 
-  // Si guardas rol en localStorage en el login, esto es lo más rápido:
   const rolLS = localStorage.getItem("rol")
   if (rolLS && rolLS.toUpperCase() === "ADMIN") return true
 
-  // Fallback: decodificamos el token
   try {
     const decoded: DecodedToken = jwtDecode(token)
     return (decoded.rol ?? "").toUpperCase() === "ADMIN"
@@ -121,7 +118,6 @@ export default function Home() {
     >
       <Container maxWidth={false} sx={{ py: 4 }}>
 
-        {/* ✅ BOTÓN PANEL (SOLO SI ES ADMIN) */}
         {isAdmin() && (
           <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2, mr: 15 }}>
             <Button
