@@ -11,20 +11,20 @@ import {
   Button,
   Chip,
   Box,
-  CircularProgress
 } from '@mui/material'
 import { mostrarCampanas } from '@/services/campañasServices'
-import Header from '@/Componentes/Header'
-import Footer from '@/Componentes/Footer'
 import { jwtDecode } from 'jwt-decode'
+import LoadingState from "@/Componentes/LoadingState"
+import ErrorState from "@/Componentes/ErrorState"
+import EmptyState from "@/Componentes/EmptyState"
 
 export type Campana = {
   id: number
   nombre: string
   objetivoRecaudacion: number
   recaudado: number
-  estado: string
-  fechaFinalizacion?: string
+  estado: 'ACTIVA' | 'FINALIZADA' | string
+  fechaFinalizacion?: string | null
 }
 
 type DecodedToken = {
@@ -32,6 +32,59 @@ type DecodedToken = {
   rol: string
   iat: number
   exp: number
+}
+
+const estadoLabel = (estado: string) => {
+  switch (estado) {
+    case 'FINALIZADA':
+      return 'Finalizada'
+    case 'ACTIVA':
+      return 'Activa'
+    default:
+      return estado || 'Desconocido'
+  }
+}
+
+const estadoColor = (estado: string) => {
+  switch (estado) {
+    case 'FINALIZADA':
+      return 'default' as const
+    case 'ACTIVA':
+      return 'success' as const
+    default:
+      return 'warning' as const
+  }
+}
+
+const formatearFecha = (fecha?: string | null) => {
+  if (!fecha) return 'Sin fecha'
+
+  const d = new Date(fecha)
+  if (Number.isNaN(d.getTime())) return '—'
+
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(d)
+}
+
+// ✅ SOLO ADMIN: helper para decidir si mostrar botón de panel
+const isAdmin = () => {
+  const token = localStorage.getItem("token")
+  if (!token) return false
+
+  // Si guardas rol en localStorage en el login, esto es lo más rápido:
+  const rolLS = localStorage.getItem("rol")
+  if (rolLS && rolLS.toUpperCase() === "ADMIN") return true
+
+  // Fallback: decodificamos el token
+  try {
+    const decoded: DecodedToken = jwtDecode(token)
+    return (decoded.rol ?? "").toUpperCase() === "ADMIN"
+  } catch {
+    return false
+  }
 }
 
 export default function Home() {
@@ -42,10 +95,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
+    setErrorMsg(null)
 
-    mostrarCampanas(true)
+    mostrarCampanas(false)
       .then((response) => {
         if (response.ok && response.data) {
           setCampanas(response.data)
@@ -53,12 +106,8 @@ export default function Home() {
           setErrorMsg(response.error?.message ?? 'Error al cargar campañas')
         }
       })
-      .catch((err: Error) => {
-        setErrorMsg(err.message)
-      })
-      .finally(() => {
-        setLoading(false)
-      })
+      .catch((err: Error) => setErrorMsg(err.message))
+      .finally(() => setLoading(false))
   }, [])
 
   return (
@@ -70,136 +119,119 @@ export default function Home() {
         pb: 4
       }}
     >
-      <Header />
-
       <Container maxWidth={false} sx={{ py: 4 }}>
 
-        {/* LOADING */}
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-            <CircularProgress />
+        {/* ✅ BOTÓN PANEL (SOLO SI ES ADMIN) */}
+        {isAdmin() && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2, mr: 15 }}>
+            <Button
+              variant="contained"
+              onClick={() => navigate("/panel")}
+              sx={{
+                backgroundColor: "#16a34a",
+                fontWeight: "bold",
+                borderRadius: 2,
+                px: 3,
+                "&:hover": { backgroundColor: "#15803d" },
+              }}
+            >
+              Ir al panel
+            </Button>
           </Box>
         )}
 
-        {/* ERROR */}
-        {!loading && errorMsg && (
-          <Typography color="error" sx={{ textAlign: 'center', mt: 5 }}>
-            {errorMsg}
-          </Typography>
-        )}
+        {loading && <LoadingState />}
 
-        {/* SIN CAMPAÑAS */}
+        {!loading && errorMsg && <ErrorState message={errorMsg} />}
+
         {!loading && !errorMsg && campanas.length === 0 && (
-          <Typography sx={{ textAlign: 'center', mt: 5 }}>
-            No hay campañas disponibles actualmente
-          </Typography>
+          <EmptyState message="No hay campañas disponibles" />
         )}
 
-        {/* LISTA DE CAMPAÑAS */}
         {!loading && !errorMsg && campanas.length > 0 && (
           <Grid container spacing={4} sx={{ ml: 17, mr: 15 }}>
-            {campanas.map((campaña) => (
-              <Grid item xs={12} sm={6} md={4} key={campaña.id}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    height="160"
-                    image={`https://picsum.photos/seed/campana-${campaña.id}/400/200`}
-                    alt={campaña.nombre}
-                  />
+            {campanas.map((campaña) => {
+              const finalizada = campaña.estado === 'FINALIZADA'
 
-                  <CardContent>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        mb: 1,
-                      }}
-                    >
-                      <Typography variant="h6">
-                        {campaña.nombre}
-                      </Typography>
+              return (
+                <Grid item xs={12} sm={6} md={4} key={campaña.id}>
+                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <CardMedia
+                      component="img"
+                      height="160"
+                      image={`https://picsum.photos/seed/campana-${campaña.id}/400/200`}
+                      alt={campaña.nombre}
+                    />
 
-                      <Chip
-                        label={
-                          campaña.estado === 'ACTIVA'
-                            ? 'Activa'
-                            : 'Finalizada'
-                        }
-                        color={
-                          campaña.estado === 'ACTIVA'
-                            ? 'success'
-                            : 'default'
-                        }
-                        size="small"
-                      />
-                    </Box>
-
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 'bold', color: 'black' }}
-                    >
-                      Objetivo: €{campaña.objetivoRecaudacion}
-                    </Typography>
-
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 'bold', color: 'black' }}
-                    >
-                      Recaudado: €{campaña.recaudado}
-                    </Typography>
-
-                    {campaña.recaudado >= campaña.objetivoRecaudacion && (
-                      <Typography
-                        variant="body2"
-                        color="error"
-                        sx={{ mt: 1, fontWeight: 'bold' }}
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          mb: 1,
+                          gap: 1
+                        }}
                       >
-                        Esta campaña está finalizada
+                        <Typography variant="h6">
+                          {campaña.nombre}
+                        </Typography>
+
+                        <Chip
+                          label={estadoLabel(campaña.estado)}
+                          color={estadoColor(campaña.estado)}
+                          size="small"
+                        />
+                      </Box>
+
+                      {finalizada && (
+                        <Typography variant="body2" color="error" sx={{ mt: 1, fontWeight: 'bold' }}>
+                          Esta campaña está finalizada
+                        </Typography>
+                      )}
+
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'black' }}>
+                        Objetivo: €{campaña.objetivoRecaudacion}
                       </Typography>
-                    )}
-                  </CardContent>
 
-                  <CardActions>
-                    <Button
-                      onClick={() => {
-                        const token = localStorage.getItem("token")
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'black' }}>
+                        Recaudado: €{campaña.recaudado}
+                      </Typography>
 
-                        if (!token) {
-                          navigate(`/campana/${campaña.id}`)
-                          return
-                        }
+                      <Typography variant="body2" sx={{ mt: 1, color: 'black' }}>
+                        <b>Fecha fin:</b> {formatearFecha(campaña.fechaFinalizacion)}
+                      </Typography>
+                    </CardContent>
 
-                        const decoded: DecodedToken = jwtDecode(token)
+                    <CardActions>
+                      <Button
+                        onClick={() => {
+                          const token = localStorage.getItem("token")
 
-                        if (decoded.rol === "CREADOR") {
-                          navigate(`/mis-campanas/${campaña.id}`)
-                        } else {
-                          navigate(`/campana/${campaña.id}`)
-                        }
-                      }}
-                    >
-                      Ver campaña
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
+                          if (!token) {
+                            navigate(`/campana/${campaña.id}`)
+                            return
+                          }
+
+                          const decoded: DecodedToken = jwtDecode(token)
+
+                          if (decoded.rol === "CREADOR") {
+                            navigate(`/mis-campanas/${campaña.id}`)
+                          } else {
+                            navigate(`/campana/${campaña.id}`)
+                          }
+                        }}
+                      >
+                        Ver campaña
+                      </Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              )
+            })}
           </Grid>
         )}
-
       </Container>
-
-      <Footer/>
-
     </Box>
-    
   )
 }

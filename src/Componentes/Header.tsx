@@ -8,7 +8,7 @@ import {
 } from "@mui/material"
 import VolunteerActivismIcon from "@mui/icons-material/VolunteerActivism"
 import { useNavigate } from "react-router-dom"
-
+import BackButton from "@/Componentes/BotonVolver"   
 
 export default function Header() {
   const navigate = useNavigate()
@@ -16,6 +16,7 @@ export default function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem("token")
+    localStorage.removeItem("rol") 
     navigate("/")
   }
 
@@ -30,10 +31,18 @@ export default function Header() {
       }}
     >
       <Toolbar sx={{ maxWidth: 1200, width: "100%", mx: "auto" }}>
-        
+
+        <BackButton hideOnPaths={["/", "/login"]} fallbackTo="/" />
+
         <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
           <VolunteerActivismIcon sx={{ color: "#16a34a", mr: 1 }} />
-          <Typography variant="h6" fontWeight="bold" color="#16a34a" onClick={() => navigate("/")}>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            color="#16a34a"
+            sx={{ cursor: "pointer" }}
+            onClick={() => navigate("/")}
+          >
             Plataforma Donaciones
           </Typography>
         </Box>
